@@ -1,26 +1,45 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { useMachine } from "@xstate/react";
+import { useEffect } from "react";
+import { parentMachine } from "./parent.machine";
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+const stringifiedState = localStorage.getItem("parent.machine");
+const persistedState = stringifiedState
+  ? JSON.parse(stringifiedState)
+  : parentMachine.initialState;
+
+export const App = () => {
+  const [state, send, service] = useMachine(parentMachine, {
+    devTools: true,
+    state: persistedState,
+  });
+
+  useEffect(() => {
+    const subscription = service.subscribe((state) => {
+      localStorage.setItem("parent.machine", JSON.stringify(state));
+    });
+
+    return subscription.unsubscribe;
+  }, [service]);
+
+  const parsedChildren = Object.values(state.context.children ?? {}).reduce(
+    (acc, child) => ({
+      ...acc,
+      [child.id]: child.getSnapshot?.()?.value,
+    }),
+    {}
   );
-}
-
-export default App;
+  return (
+    <>
+      <pre>{JSON.stringify(state.value)}</pre>
+      <pre>{JSON.stringify(parsedChildren, null, 2)}</pre>
+      <button onClick={() => send("moveToTransition")}>
+        Move to transition
+      </button>
+      <button onClick={() => send("moveToInitial")}>Move to initial</button>
+      <button onClick={() => send("spawnChild")}>Spawn child</button>
+      <button onClick={() => send("moveChildrenToSecond")}>
+        Move children to second state
+      </button>
+    </>
+  );
+};
