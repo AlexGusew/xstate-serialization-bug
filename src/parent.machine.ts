@@ -5,6 +5,7 @@ import { pure, send } from "xstate/lib/actions";
 
 export const parentMachine = createMachine(
   {
+    predictableActionArguments: true,
     tsTypes: {} as import("./parent.machine.typegen").Typegen0,
     schema: {
       context: {
